@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Water Bill BD &#x2014; Dhaka WASA water &amp; sewerage bill calculator</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <div>
+      <h1 id="title">Water Bill BD</h1>
+      <p class="subtitle" data-i18n="subtitle">Dhaka WASA water &amp; sewerage bill calculator</p>
+    </div>
+    <button id="langBtn" type="button" class="lang-btn">&#x9ac;&#x9be;&#x982;&#x9b2;&#x9be;</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" class="tab active" id="tabbtn-calc" data-tab="calc" data-i18n="tabCalc">Calculator</button>
+    <button type="button" class="tab" id="tabbtn-estimate" data-tab="estimate" data-i18n="tabEstimate">Estimator</button>
+    <button type="button" class="tab" id="tabbtn-atm" data-tab="atm" data-i18n="tabAtm">ATM Water</button>
+    <button type="button" class="tab" id="tabbtn-rates" data-tab="rates" data-i18n="tabRates">Rates</button>
+    <button type="button" class="tab" id="tabbtn-history" data-tab="history" data-i18n="tabHistory">History</button>
+  </nav>
+
+  <!-- ============ CALCULATOR ============ -->
+  <section id="tab-calc" class="panel">
+    <div class="card">
+      <div class="field">
+        <label data-i18n="category">Connection category</label>
+        <div class="radio-row" role="radiogroup" aria-label="Category">
+          <label class="radio"><input type="radio" name="category" value="residential" checked> <span data-i18n="residential">Residential</span> <small id="resRateHint"></small></label>
+          <label class="radio"><input type="radio" name="category" value="commercial"> <span data-i18n="commercial">Commercial</span> <small id="comRateHint"></small></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="inputMode">How do you know your usage?</label>
+        <div class="radio-row" role="radiogroup" aria-label="Input mode">
+          <label class="radio"><input type="radio" name="inputMode" value="direct" checked> <span data-i18n="modeDirect">I know the litres used</span></label>
+          <label class="radio"><input type="radio" name="inputMode" value="meter"> <span data-i18n="modeMeter">From meter readings</span></label>
+        </div>
+      </div>
+
+      <div class="field" id="directRow">
+        <label for="litresInput" data-i18n="litresUsed">Water used (litres)</label>
+        <input id="litresInput" type="number" min="1" max="10000000" step="1" inputmode="numeric" placeholder="10000">
+        <p class="hint" data-i18n="litresUsedHint">1 unit = 1,000 litres. 1 m&#xb3; = 1,000 litres.</p>
+      </div>
+
+      <div id="meterRows" hidden>
+        <div class="field">
+          <label data-i18n="unitLabel">Reading unit</label>
+          <div class="radio-row" role="radiogroup" aria-label="Reading unit">
+            <label class="radio"><input type="radio" name="readUnit" value="m3" checked> <span data-i18n="unitM3">Cubic metres (m&#xb3;)</span></label>
+            <label class="radio"><input type="radio" name="readUnit" value="litres"> <span data-i18n="unitLitres">Litres</span></label>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="prevReading" data-i18n="prevReading">Previous reading</label>
+            <input id="prevReading" type="number" min="0" step="any" inputmode="decimal" placeholder="123.5">
+          </div>
+          <div class="field">
+            <label for="currReading" data-i18n="currReading">Current reading</label>
+            <input id="currReading" type="number" min="0" step="any" inputmode="decimal" placeholder="128.5">
+          </div>
+        </div>
+      </div>
+
+      <div class="field checks">
+        <label class="check"><input type="checkbox" id="sewerageChk" checked> <span data-i18n="sewerage">Sewerage line connected</span></label>
+        <p class="hint" data-i18n="sewerageHint">WASA bills sewerage at the same rate as water. Untick if you have no sewerage connection.</p>
+        <label class="check"><input type="checkbox" id="vatChk" checked> <span data-i18n="vat">Add VAT (15%)</span></label>
+      </div>
+
+      <div class="field">
+        <label for="arrearsInput" data-i18n="arrears">Arrears / previous dues (&#x9f3;, optional)</label>
+        <input id="arrearsInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0">
+      </div>
+
+      <p class="error" id="calcError" hidden></p>
+      <button type="button" class="btn primary" id="calcBtn" data-i18n="calcBtn">Calculate bill</button>
+    </div>
+
+    <div class="card" id="billCard" hidden>
+      <h2 data-i18n="total">Total payable</h2>
+      <p class="big-total" id="billTotal">&#x2014;</p>
+      <table class="breakdown">
+        <tbody id="billRows"></tbody>
+      </table>
+      <div class="grid2 stats">
+        <div><span data-i18n="units">Units (1,000 L)</span><strong id="statUnits">&#x2014;</strong></div>
+        <div><span data-i18n="perDay">Per day (30-day month)</span><strong id="statPerDay">&#x2014;</strong></div>
+        <div><span data-i18n="litresPerDay">Litres per day</span><strong id="statLpd">&#x2014;</strong></div>
+        <div><span data-i18n="per1000">Effective cost per 1,000 L</span><strong id="statPer1000">&#x2014;</strong></div>
+      </div>
+      <div class="field save-row">
+        <label for="billLabel" data-i18n="label">Label (optional)</label>
+        <input id="billLabel" type="text" maxlength="60" placeholder="e.g. October bill">
+        <button type="button" class="btn" id="saveBillBtn" data-i18n="saveBtn">Save this bill</button>
+        <span class="ok-msg" id="savedMsg" hidden></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ESTIMATOR ============ -->
+  <section id="tab-estimate" class="panel" hidden>
+    <div class="card">
+      <h2 data-i18n="estTitle">Monthly usage estimator</h2>
+      <p class="hint" data-i18n="estHint">Planning estimate only &#x2014; your real bill comes from your meter.</p>
+      <div class="grid2">
+        <div class="field">
+          <label for="estPeople" data-i18n="people">People in the household</label>
+          <input id="estPeople" type="number" min="1" max="100" step="1" value="4">
+        </div>
+        <div class="field">
+          <label for="estLppd" data-i18n="lppd">Litres per person per day</label>
+          <input id="estLppd" type="number" min="1" max="1000" step="1" value="120">
+        </div>
+        <div class="field">
+          <label for="estDays" data-i18n="days">Days in the month</label>
+          <input id="estDays" type="number" min="1" max="366" step="1" value="30">
+        </div>
+        <div class="field">
+          <label data-i18n="category">Connection category</label>
+          <select id="estCategory">
+            <option value="residential" data-i18n="residential">Residential</option>
+            <option value="commercial" data-i18n="commercial">Commercial</option>
+          </select>
+        </div>
+      </div>
+      <p class="error" id="estError" hidden></p>
+      <button type="button" class="btn primary" id="estBtn" data-i18n="estBtn">Estimate monthly bill</button>
+    </div>
+    <div class="card" id="estCard" hidden>
+      <h2 data-i18n="estLitres">Estimated monthly use</h2>
+      <p class="big-total" id="estLitresOut">&#x2014;</p>
+      <table class="breakdown"><tbody id="estRows"></tbody></table>
+      <p class="big-total" id="estTotal">&#x2014;</p>
+    </div>
+  </section>
+
+  <!-- ============ ATM WATER ============ -->
+  <section id="tab-atm" class="panel" hidden>
+    <div class="card">
+      <h2 data-i18n="atmTitle">WASA Water ATM (prepaid booths)</h2>
+      <p class="hint" data-i18n="atmHint">Booth water costs &#x9f3;1.00 per litre, VAT included, since 1 March 2026. Compare it with piped water below.</p>
+      <div class="grid2">
+        <div class="field">
+          <label for="atmLitres" data-i18n="atmLitres">Litres to buy</label>
+          <input id="atmLitres" type="number" min="1" max="1000000" step="1" value="20">
+          <button type="button" class="btn primary" id="atmBtn" data-i18n="atmBtn">Price it</button>
+          <p class="big-total" id="atmCostOut">&#x2014;</p>
+        </div>
+        <div class="field">
+          <label for="atmMoney" data-i18n="atmMoney">Or: money you have (&#x9f3;)</label>
+          <input id="atmMoney" type="number" min="1" max="1000000" step="1" value="100">
+          <button type="button" class="btn primary" id="atmMoneyBtn" data-i18n="atmMoneyBtn">How many litres?</button>
+          <p class="big-total" id="atmLitresOut">&#x2014;</p>
+        </div>
+      </div>
+      <p class="compare" id="atmCompare" hidden></p>
+      <p class="hint" data-i18n="atmNote">ATM booth water is drinking water; piped WASA water is not potable without boiling.</p>
+    </div>
+  </section>
+
+  <!-- ============ RATES ============ -->
+  <section id="tab-rates" class="panel" hidden>
+    <div class="card">
+      <h2 data-i18n="ratesTitle">Current rates (editable)</h2>
+      <p class="hint" data-i18n="ratesHint">Defaults are the 1 July 2024 WASA circular rates. WASA revises rates &#x2014; check your bill and edit here; your edits are saved on this device.</p>
+      <div class="grid2">
+        <div class="field">
+          <label for="rateWaterRes"><span data-i18n="waterRate">Water rate (per 1,000 L)</span> &#x2014; <span data-i18n="residential">Residential</span> (&#x9f3;)</label>
+          <input id="rateWaterRes" type="number" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label for="rateWaterCom"><span data-i18n="waterRate">Water rate (per 1,000 L)</span> &#x2014; <span data-i18n="commercial">Commercial</span> (&#x9f3;)</label>
+          <input id="rateWaterCom" type="number" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label for="rateSewerRes"><span data-i18n="sewerRate">Sewerage rate (per 1,000 L)</span> &#x2014; <span data-i18n="residential">Residential</span> (&#x9f3;)</label>
+          <input id="rateSewerRes" type="number" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label for="rateSewerCom"><span data-i18n="sewerRate">Sewerage rate (per 1,000 L)</span> &#x2014; <span data-i18n="commercial">Commercial</span> (&#x9f3;)</label>
+          <input id="rateSewerCom" type="number" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label for="rateVat" data-i18n="vatPct">VAT (%)</label>
+          <input id="rateVat" type="number" min="0" max="100" step="0.01">
+        </div>
+        <div class="field">
+          <label for="rateAtm" data-i18n="atmRate">ATM booth rate (paisa per litre)</label>
+          <input id="rateAtm" type="number" min="0" step="1">
+        </div>
+      </div>
+      <p class="error" id="ratesError" hidden></p>
+      <div class="btn-row">
+        <button type="button" class="btn primary" id="saveRatesBtn" data-i18n="saveRates">Save rates</button>
+        <button type="button" class="btn" id="resetRatesBtn" data-i18n="resetRates">Reset to 1 July 2024 defaults</button>
+      </div>
+      <span class="ok-msg" id="ratesMsg" hidden></span>
+    </div>
+    <div class="card">
+      <h2 data-i18n="histTitle">Rate history &#x2014; water charge per 1,000 L</h2>
+      <table class="breakdown">
+        <thead><tr><th data-i18n="from">From</th><th data-i18n="residential">Residential</th><th data-i18n="commercial">Commercial</th></tr></thead>
+        <tbody id="rateHistBody"></tbody>
+      </table>
+      <p class="hint" data-i18n="histNote">Sewerage has always been charged at the same rate as water; VAT 15% on the sum. Sources in the README.</p>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY ============ -->
+  <section id="tab-history" class="panel" hidden>
+    <div class="card">
+      <h2><span data-i18n="histTotal">Saved bills total</span>: <span id="histTotalOut">&#x2014;</span></h2>
+      <p class="hint" id="histCountOut"></p>
+      <div id="histChartWrap"><svg id="histChart" width="100%" height="160" role="img" aria-label="Saved bills chart"></svg></div>
+      <table class="breakdown">
+        <thead><tr><th data-i18n="date">Date</th><th data-i18n="label">Label (optional)</th><th data-i18n="litresCol">Litres</th><th data-i18n="totalCol">Total</th><th></th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+      <p class="hint" id="histEmpty" data-i18n="histEmpty">No saved bills yet. Calculate a bill and tap &#x201c;Save this bill&#x201d;.</p>
+      <div class="btn-row">
+        <button type="button" class="btn" id="exportBtn" data-i18n="exportBtn">Export JSON</button>
+        <button type="button" class="btn" id="importBtn" data-i18n="importBtn">Import JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+        <button type="button" class="btn danger" id="eraseBtn" data-i18n="eraseBtn">Erase all data</button>
+      </div>
+      <p class="error" id="importError" hidden></p>
+      <span class="ok-msg" id="importMsg" hidden></span>
+    </div>
+  </section>
+
+  <footer>
+    <p data-i18n="disclaimer">Personal estimator, not an official WASA bill. Rates are the 1 July 2024 circular defaults &#x2014; WASA may revise them; verify against your own bill. Piped WASA water is not potable without boiling. In an emergency call 999.</p>
+    <p class="credit">water-bill-bd &#xb7; 100% offline &#xb7; no data leaves your device</p>
+  </footer>
+</main>
+
+<script src="js/logic.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
